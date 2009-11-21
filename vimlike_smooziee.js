@@ -1,12 +1,5 @@
 (function(){
   // TODO
-  var exclude_urls = [/\/\/www\.google\.[^\/]+\/reader\//,  /\/\/mail\.google\.com\/mail\//, /\/\/www\.pivotaltracker\.com\//];
-  for (var i = 0; i < exclude_urls.length; i++) {
-    if ( exclude_urls[i].test(location.href) ) {
-      return;
-    }
-  }
-
   var interval = 20;
   var vertical_moment = 250;
   var horizontal_moment = 100;
@@ -22,6 +15,15 @@
   var zoom_settings = [];
   var zoom_levels = ['30%', '50%', '67%', '80%', '90%', '100%', '110%', '120%', '133%', '150%', '170%', '200%', '240%', '300%'];
   var defalut_zoom_index = zoom_levels.indexOf('100%');
+
+  var currentKeyHandler = null;
+  function setKeyHandler(handler) {
+    if (currentKeyHandler) {
+      document.removeEventListener('keydown', currentKeyHandler, false);
+    }
+    document.addEventListener('keydown', handler, false);
+    currentKeyHandler = handler;
+  }
 
   chrome.extension.onConnect.addListener(function(port) {
     port.onMessage.addListener(function(msg) {
@@ -186,8 +188,7 @@
     } else {
       zoom_settings[domain] = zoom_level;
     }
-    document.removeEventListener('keydown', zHandler, false);
-    document.addEventListener('keydown', initKeyBind, false);
+    setKeyHandler(initKeyBind);
   }
 
   function currentZoom() {
@@ -200,40 +201,31 @@
   }
 
   function gMode(){
-    document.addEventListener('keydown', gHandler, false);
+    setKeyHandler(gHandler);
   }
 
   function gHandler(e){
     addKeyBind( 'g', 'scrollToTop()', e );
     addKeyBind( 'i', 'focusFirstTextInput()', e );
-    var pressedKey = get_key(e);
-    if (pressedKey != 'g' && pressedKey != 'i'){
-      document.removeEventListener('keydown', gHandler, false);
-    }
+    normalMode();
   }
 
   function pageMode(key){
     if(key == ']'){
-      document.addEventListener('keydown', nextPageHandler, false);
+      setKeyHandler(nextPageHandler);
     }else{
-      document.addEventListener('keydown', prevPageHandler, false);
+      setKeyHandler(prevPageHandler);
     }
   }
 
   function nextPageHandler(e){
     addKeyBind( ']', 'nextPage()', e );
-    var pressedKey = get_key(e);
-    if (pressedKey != ']'){
-      document.removeEventListener('keydown', nextPageHandler, false);
-    }
+    normalMode();
   }
 
   function prevPageHandler(e){
     addKeyBind( '[', 'prevPage()', e );
-    var pressedKey = get_key(e);
-    if (pressedKey != '['){
-      document.removeEventListener('keydown', prevPageHandler, false);
-    }
+    normalMode();
   }
 
   function nextPage(){
@@ -255,8 +247,7 @@
   }
 
   function zMode(){
-    document.removeEventListener('keydown', initKeyBind, false);
-    document.addEventListener('keydown', zHandler, false);
+    setKeyHandler(zHandler);
   }
 
   function zHandler(e){
@@ -267,8 +258,7 @@
     addKeyBind( 'r', 'zoomReduce()', e );
     var pressedKey = get_key(e);
     if (/[ziomr]/.test(pressedKey) == false) {
-      document.removeEventListener('keydown', zHandler, false);
-      document.addEventListener('keydown', initKeyBind, false);
+      setKeyHandler(initKeyBind);
     }
   }
   ////////////////////////////////////////
@@ -302,8 +292,7 @@
     div.appendChild(div_text);
     document.body.appendChild(div);
 
-    document.removeEventListener('keydown', initKeyBind, false);
-    document.addEventListener('keydown', hintHandler, false);
+    setKeyHandler(hintHandler);
   }
 
   function hintHandler(e){
@@ -504,8 +493,7 @@
       document.body.removeChild(div);
     }
 
-    document.removeEventListener('keydown', hintHandler, false);
-    document.addEventListener('keydown', initKeyBind, false);
+    setKeyHandler(initKeyBind);
   }
   ////////////////////
 
@@ -578,16 +566,54 @@
     if( pressedKey == key ){
       eve.preventDefault();  //Stop Default Event
       eval(func);
+      return true;
     }
     return false;
   }
 
-  document.addEventListener( 'keydown', initKeyBind, false );
+  var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\/mail\//, /\/\/www\.pivotaltracker\.com\//];
+  for (var i = 0; i < exclude_urls.length; i++) {
+    if ( exclude_urls[i].test(location.href) ) {
+      passthroughMode();
+    } else {
+      normalMode();
+    }
+  }
+
+  function passthroughHandler(e) {
+    var t = e.target;
+    if( t.nodeType == 1){
+      var tn=t.tagName.toLowerCase();
+      if( tn == 'input' || tn == 'textarea' ){
+	addKeyBind( 'Esc', 'blurFocus()', e );
+	addKeyBind( 'C-[', 'blurFocus()', e ); // = Esc
+	addKeyBind( 'C-a', 'moveFirstOrSelectAll()', e );
+	addKeyBind( 'C-e', 'moveEnd()', e );
+	addKeyBind( 'C-f', 'moveForward()', e );
+	addKeyBind( 'C-b', 'moveBackward()', e );
+	addKeyBind( 'C-d', 'deleteForward()', e );
+	addKeyBind( 'C-h', 'deleteBackward()', e );
+	addKeyBind( 'C-w', 'deleteBackwardWord()', e );
+	return;
+      }
+    }
+    addKeyBind( 'Esc', 'normalMode()', e );
+  }
+
+  function normalMode() {
+    console.debug('normal mode');
+    setKeyHandler(initKeyBind);
+  }
+
+  function passthroughMode() {
+    console.debug('passthrough mode');
+    setKeyHandler(passthroughHandler);
+  }
 
   function initKeyBind(e){
     var t = e.target;
     if( t.nodeType == 1){
-      tn=t.tagName.toLowerCase();
+      var tn = t.tagName.toLowerCase();
       if( tn == 'input' || tn == 'textarea' ){
         addKeyBind( 'Esc', 'blurFocus()', e );
         addKeyBind( 'C-[', 'blurFocus()', e ); // = Esc
@@ -623,6 +649,7 @@
       addKeyBind( 'z', 'zMode()', e );
       addKeyBind( 'f', 'hintMode()', e );
       addKeyBind( 'F', 'hintMode(true)', e );
+      addKeyBind( 'C-z', 'passthroughMode()', e);
     }
     return false;
   }
