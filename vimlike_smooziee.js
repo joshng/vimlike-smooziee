@@ -1,4 +1,8 @@
 (function(){
+  var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\/mail\//, /\/\/www\.pivotaltracker\.com\//];
+
+  console.debug('loading vim-mode');
+
   // TODO
   var interval = 20;
   var vertical_moment = 250;
@@ -14,16 +18,28 @@
 
   var zoom_settings = [];
   var zoom_levels = ['30%', '50%', '67%', '80%', '90%', '100%', '110%', '120%', '133%', '150%', '170%', '200%', '240%', '300%'];
-  var defalut_zoom_index = zoom_levels.indexOf('100%');
+  var default_zoom_index = zoom_levels.indexOf('100%');
 
-  var currentKeyHandler = null;
-  function setKeyHandler(handler) {
-    if (currentKeyHandler) {
-      document.removeEventListener('keydown', currentKeyHandler, false);
-    }
-    document.addEventListener('keydown', handler, false);
-    currentKeyHandler = handler;
+  var currentKeyMap;
+  var nextKeyMap;
+  function setNextKeyMap(keyMap) {
+    nextKeyMap = keyMap;
   }
+
+  function handleKeyDown(e) {
+    var t = e.target;
+    if( t.nodeType == 1){
+      var tn = t.tagName.toLowerCase();
+      if( tn == 'input' || tn == 'textarea' ){
+	return;
+      }
+    }
+
+    nextKeyMap = currentKeyMap._nextKeyMapDefault;
+    currentKeyMap._handleKeyDown(e);
+    currentKeyMap = nextKeyMap;
+  }
+  document.addEventListener('keydown', handleKeyDown, false);
 
   chrome.extension.onConnect.addListener(function(port) {
     port.onMessage.addListener(function(msg) {
@@ -36,140 +52,380 @@
     });
   });
 
-  function smoothScrollDown(){
-    flg = 'vertical';
-    smoothScrollBy(vertical_moment);
+  var Action = {
+    smoothScrollDown: function(){
+      flg = 'vertical';
+      smoothScrollBy(vertical_moment);
+    },
+
+    smoothScrollUp: function(){
+      flg = 'vertical';
+      smoothScrollBy(-vertical_moment);
+    },
+
+    smoothScrollRight: function(){
+      flg = 'horizontal';
+      smoothScrollBy(horizontal_moment);
+    },
+
+    smoothScrollLeft: function(){
+      flg = 'horizontal';
+      smoothScrollBy(-horizontal_moment);
+    },
+
+    scrollToTop: function(){
+      scroll(0, -document.documentElement.scrollHeight);
+    },
+
+    scrollToBottom: function(){
+      scroll(0, document.documentElement.scrollHeight);
+    },
+
+    scrollToFirst: function(){
+      var scrollTop  = document.body.scrollTop  || document.documentElement.scrollTop;
+      scroll(-document.documentElement.scrollWidth, scrollTop);
+    },
+
+    scrollToLast: function(){
+      var scrollTop  = document.body.scrollTop  || document.documentElement.scrollTop;
+      scroll(document.documentElement.scrollWidth, scrollTop);
+    },
+
+    reload: function(){
+      location.reload();
+    },
+
+    reloadAll: function(){
+      var port = chrome.extension.connect();
+      port.postMessage({action: "reload_all_tabs"});
+    },
+
+    closeTab: function(){
+      var port = chrome.extension.connect();
+      port.postMessage({action: "close_tab"});
+    },
+
+    reopenTab: function(){
+      var port = chrome.extension.connect();
+      port.postMessage({action: "reopen_tab"});
+    },
+
+    previousTab: function(){
+      var port = chrome.extension.connect();
+      port.postMessage({action: "previous_tab"});
+    },
+
+    nextTab: function(){
+      var port = chrome.extension.connect();
+      port.postMessage({action: "next_tab"});
+    },
+
+    historyBack: function(){
+      history.back();
+    },
+
+    historyForward: function(){
+      history.forward();
+    },
+
+    zoomDefault: function() {
+      var domain = document.domain;
+      setZoom(default_zoom_index, domain);
+    },
+
+    zoomIn: function() {
+      var domain = document.domain;
+      setZoomCountup(1, domain);
+    },
+
+    zoomOut: function() {
+      var domain = document.domain;
+      setZoomCountup(-1, domain);
+    },
+
+    zoomMore: function() {
+      var domain = document.domain;
+      setZoomCountup(3, domain);
+    },
+
+    zoomReduce: function() {
+      var domain = document.domain;
+      setZoomCountup(-3, domain);
+    },
+
+    gMode: function(){
+      setNextKeyMap(gModeKeyMap);
+    },
+
+    pageMode: function(key){
+      if (key == ']'){
+	setNextKeyMap(NextPageKeyMap);
+      } else {
+	setNextKeyMap(PrevPageKeyMap);
+      }
+    },
+
+    nextPage: function(){
+      elems = document.getElementsByTagName('a');
+      for(var cur in elems){
+	if(new RegExp('>>|下一页|»|Next|more*','im').test(elems[cur].innerText)){
+	  document.location = elems[cur].href;
+	}
+      }
+    },
+
+    prevPage: function(){
+      elems = document.getElementsByTagName('a');
+      for(var cur in elems){
+	if(new RegExp('<<|«|上一页|Prev','im').test(elems[cur].innerText)){
+	  document.location = elems[cur].href;
+	}
+      }
+    },
+
+    zMode: function(){
+      setNextKeyMap(zModeKeyMap);
+    },
+
+    ////////////////////////////////////////
+    // Hint Mode
+    ////////////////////////////////////////
+    hintMode: function(newtab){
+      hint_str     = '';
+      hint_elems   = [];
+      hint_str_num = 0;
+      hint_open_in_new_tab = newtab ? true : false;
+      setHints();
+
+      var div = document.createElement('div');
+      div.setAttribute('id','follow_hint');
+      div.style.position   = "fixed";
+      div.style.bottom     = "0px";
+      div.style.left       = "0";
+      div.style.width      = "250px";
+      div.style.background = "#ff0";
+      div.style.textAlign  = "left";
+      div.style.fontSize   = "12px";
+      div.style.color      = "green";
+      div.style.fontWeight = "bold";
+      div.style.padding    = "5px";
+
+      div.innerHTML        = 'Follow Hint:';
+      var div_text = document.createElement('span');
+      div_text.setAttribute('id','follow_hint_text');
+      div_text.style.color      = "#000";
+      div_text.style.padding    = "5px";
+      div.appendChild(div_text);
+      document.body.appendChild(div);
+
+      setNextKeyMap(HintKeyMap);
+    },
+
+    newTabHintMode: function() {
+      this.hintMode(true);
+    },
+
+    focusFirstTextInput: function(){
+      var elem = document.querySelector('input[type="text"],input:not([type])');
+      if (elem) {
+	elem.focus();
+	elem.setSelectionRange(elem.value.length, elem.value.length);
+      }
+    },
+
+    // Actions that apply within text inputs
+    blurFocus: function(){
+      document.activeElement.blur();
+    },
+
+    moveFirstOrSelectAll: function(){
+      var elem = document.activeElement;
+      var caret_position = elem.selectionEnd;
+      if (caret_position == 0){
+	elem.setSelectionRange(0, elem.value.length); // select all text
+      } else {
+	elem.setSelectionRange(0, 0);
+      }
+    },
+
+    moveEnd: function(){
+      var elem = document.activeElement;
+      elem.setSelectionRange(elem.value.length, elem.value.length);
+    },
+
+    moveForward: function(){
+      var elem = document.activeElement;
+      var caret_position = elem.selectionEnd;
+      elem.setSelectionRange(caret_position + 1, caret_position + 1);
+    },
+
+    moveBackward: function(){
+      var elem = document.activeElement;
+      var caret_position = elem.selectionEnd;
+      elem.setSelectionRange(caret_position - 1, caret_position - 1);
+    },
+
+    deleteForward: function(){
+      var elem = document.activeElement;
+      var caret_position = elem.selectionEnd;
+      var org_str = elem.value;
+      elem.value = org_str.substring(0, caret_position) + org_str.substring(caret_position + 1, org_str.length);
+      elem.setSelectionRange(caret_position, caret_position);
+    },
+
+    deleteBackward: function(){
+      var elem = document.activeElement;
+      var caret_position = elem.selectionEnd;
+      var org_str = elem.value;
+      elem.value = org_str.substring(0, caret_position - 1) + org_str.substring(caret_position, org_str.length);
+      elem.setSelectionRange(caret_position - 1, caret_position - 1);
+    },
+
+    deleteBackwardWord: function(){
+      var elem = document.activeElement;
+      var caret_position = elem.selectionEnd;
+      var org_str = elem.value;
+      elem.value = org_str.substring(0, caret_position - 1).replace(/\S*\s*$/,'') + org_str.substring(caret_position, org_str.length);
+      var position = elem.value.length - (org_str.length - caret_position);
+      elem.setSelectionRange(position,position);
+    },
+
+    normalMode: normalMode,
+
+    passthroughMode: passthroughMode
+  };
+
+  function KeyMap(mappings) {
+    this.map = mappings;
   }
 
-  function smoothScrollUp(){
-    flg = 'vertical';
-    smoothScrollBy(-vertical_moment);
-  }
+  KeyMap.prototype = {
+    _handleKeyDown: function(e) {
+      var key = get_key(e);
+      console.debug('handling key: ' + key);
+      var action = this.map[key];
+      if (action) {
+	e.preventDefault();
+	action.call(this);
+	return true;
+      }
+      return false;
 
-  function smoothScrollRight(){
-    flg = 'horizontal';
-    smoothScrollBy(horizontal_moment);
-  }
-
-  function smoothScrollLeft(){
-    flg = 'horizontal';
-    smoothScrollBy(-horizontal_moment);
-  }
-
-  function smoothScrollBy(moment){
-    clearTimeout(next);
-    smoothScroll(moment);
-  }
-
-  function smoothScroll(moment){
-    if (moment > 0){
-      moment = Math.floor(moment / 2);
-    }else{
-      moment = Math.ceil(moment / 2);
+      // this._afterKeyDown(action != null);
     }
+  };
 
-    scrollFunc(moment);
+  // var TextInputNormalModeKeyMap = new KeyMap({
+  //   'Esc': Action.blurFocus,
+  //   'C-[': Action.blurFocus,
+  //   'C-a': Action.moveFirstOrSelectAll,
+  //   'C-e': Action.moveEnd,
+  //   'C-f': Action.moveForward,
+  //   'C-b': Action.moveBackward,
+  //   'C-d': Action.deleteForward,
+  //   'C-h': Action.deleteBackward,
+  //   'C-w': Action.deleteBackwardWord,
+  // });
 
-    if (Math.abs(moment) < 1) {
-      setTimeout(function() { scrollFunc(moment); });
-      return;
+  var NormalKeyMap = new KeyMap({
+    'j': Action.smoothScrollDown,
+    'k': Action.smoothScrollUp,
+    'h': Action.smoothScrollLeft,
+    'l': Action.smoothScrollRight,
+    'r': Action.reload,
+    'R': Action.reloadAll,
+    'd': Action.closeTab,
+    'u': Action.reopenTab,
+    'C-p': Action.previousTab,
+    'C-n': Action.nextTab,
+    'H': Action.historyBack,
+    'L': Action.historyForward,
+    'G': Action.scrollToBottom,
+    '0': Action.scrollToFirst,
+    '$': Action.scrollToLast,
+    'Esc': Action.blurFocus,
+    'C-[': Action.blurFocus,
+    'g': Action.gMode,
+    ']': Action.pageMode,
+    '[': Action.pageMode,
+    'z': Action.zMode,
+    'f': Action.hintMode,
+    'F': Action.newTabHintMode,
+    'C-z': Action.passthroughMode
+  });
+
+
+  KeyMap.prototype._nextKeyMapDefault = NormalKeyMap;
+
+  var PassthroughKeyMap = new KeyMap({
+    Esc: normalMode
+  });
+  PassthroughKeyMap._nextKeyMapDefault = PassthroughKeyMap;
+
+  function normalMode() {
+    console.debug('normal mode');
+    setNextKeyMap(NormalKeyMap);
+  }
+
+  function passthroughMode() {
+    console.debug('passthrough mode');
+    setNextKeyMap(PassthroughKeyMap);
+  }
+
+  nextKeyMap = NormalKeyMap;
+  for (var i = 0; i < exclude_urls.length; i++) {
+    if ( exclude_urls[i].test(location.href) ) {
+      passthroughMode();
+      break;
     }
-
-    next = setTimeout(function() { smoothScroll(moment); }, interval);
   }
+  currentKeyMap = nextKeyMap;
 
-  function scrollFunc(moment) {
-    if (flg == 'vertical') {
-      scrollBy(0, moment);
-    } else if (flg == 'horizontal') {
-      scrollBy(moment, 0);
+
+  var NextPageKeyMap = new KeyMap({
+    ']': Action.nextPage
+  });
+
+  var PrevPageKeyMap = new KeyMap({
+    '[': Action.prevPage
+  });
+
+  var gModeKeyMap = new KeyMap({
+    g: Action.scrollToTop,
+    i: Action.focusFirstTextInput
+  });
+
+  var zModeKeyMap = new KeyMap({
+    z: Action.zoomDefault,
+    i: Action.zoomIn,
+    o: Action.zoomOut,
+    m: Action.zoomMore,
+    r: Action.zoomReduce
+  });
+
+
+  var HintKeyMap = {
+    _handleKeyDown: function(e) {
+      e.preventDefault();  //Stop Default Event
+      var pressedKey = get_key(e);
+
+      if (pressedKey =='Esc') {
+	removeHints();
+      } else {
+	if(pressedKey == 'Enter'){
+	  highlightAndJumpCurrentHint('',true);
+	}else{
+	  highlightAndJumpCurrentHint(pressedKey,false);
+	}
+      }
     }
-  }
-
-  function scrollToTop(){
-    scroll(0, -document.documentElement.scrollHeight);
-  }
-
-  function scrollToBottom(){
-    scroll(0, document.documentElement.scrollHeight);
-  }
-
-  function scrollToFirst(){
-    var scrollTop  = document.body.scrollTop  || document.documentElement.scrollTop;
-    scroll(-document.documentElement.scrollWidth, scrollTop);
-  }
-
-  function scrollToLast(){
-    var scrollTop  = document.body.scrollTop  || document.documentElement.scrollTop;
-    scroll(document.documentElement.scrollWidth, scrollTop);
-  }
-
-  function reload(){
-    location.reload();
-  }
-
-  function reloadAll(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "reload_all_tabs"});
-  }
-
-  function closeTab(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "close_tab"});
-  }
-
-  function reopenTab(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "reopen_tab"});
-  }
-
-  function previousTab(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "previous_tab"});
-  }
-
-  function nextTab(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "next_tab"});
-  }
-
-  function historyBack(){
-    history.back();
-  }
-
-  function historyForward(){
-    history.forward();
-  }
-
-  function zoomDefault() {
-    var domain = document.domain;
-    setZoom(defalut_zoom_index, domain);
-  }
-
-  function zoomIn() {
-    var domain = document.domain;
-    setZoomCountup(1, domain);
-  }
-
-  function zoomOut() {
-    var domain = document.domain;
-    setZoomCountup(-1, domain);
-  }
-
-  function zoomMore() {
-    var domain = document.domain;
-    setZoomCountup(3, domain);
-  }
-
-  function zoomReduce() {
-    var domain = document.domain;
-    setZoomCountup(-3, domain);
-  }
+  };
+  HintKeyMap._nextKeyMapDefault = HintKeyMap;
 
   function setZoomCountup(countup, domain) {
     var now_zoom_level = zoom_settings[domain];
     if (now_zoom_level == undefined) {
-      now_zoom_level = defalut_zoom_index;
+      now_zoom_level = default_zoom_index;
     }
     var zoom_level;
     zoom_level = now_zoom_level + countup;
@@ -183,12 +439,12 @@
 
   function setZoom(zoom_level, domain) {
     document.body.style.zoom = zoom_levels[zoom_level];
-    if (zoom_level == defalut_zoom_index) {
+    if (zoom_level == default_zoom_index) {
       delete zoom_settings[domain];
     } else {
       zoom_settings[domain] = zoom_level;
     }
-    setKeyHandler(initKeyBind);
+    normalMode();
   }
 
   function currentZoom() {
@@ -198,116 +454,6 @@
       return 1;
     }
     return ( parseInt(zoom_levels[zoom_level]) / 100 );
-  }
-
-  function gMode(){
-    setKeyHandler(gHandler);
-  }
-
-  function gHandler(e){
-    addKeyBind( 'g', 'scrollToTop()', e );
-    addKeyBind( 'i', 'focusFirstTextInput()', e );
-    normalMode();
-  }
-
-  function pageMode(key){
-    if(key == ']'){
-      setKeyHandler(nextPageHandler);
-    }else{
-      setKeyHandler(prevPageHandler);
-    }
-  }
-
-  function nextPageHandler(e){
-    addKeyBind( ']', 'nextPage()', e );
-    normalMode();
-  }
-
-  function prevPageHandler(e){
-    addKeyBind( '[', 'prevPage()', e );
-    normalMode();
-  }
-
-  function nextPage(){
-    elems = document.getElementsByTagName('a');
-    for(var cur in elems){
-      if(new RegExp('>>|下一页|»|Next|more*','im').test(elems[cur].innerText)){
-        document.location = elems[cur].href;
-      }
-    }
-  }
-
-  function prevPage(){
-    elems = document.getElementsByTagName('a');
-    for(var cur in elems){
-      if(new RegExp('<<|«|上一页|Prev','im').test(elems[cur].innerText)){
-        document.location = elems[cur].href;
-      }
-    }
-  }
-
-  function zMode(){
-    setKeyHandler(zHandler);
-  }
-
-  function zHandler(e){
-    addKeyBind( 'z', 'zoomDefault()', e );
-    addKeyBind( 'i', 'zoomIn()', e );
-    addKeyBind( 'o', 'zoomOut()', e );
-    addKeyBind( 'm', 'zoomMore()', e );
-    addKeyBind( 'r', 'zoomReduce()', e );
-    var pressedKey = get_key(e);
-    if (/[ziomr]/.test(pressedKey) == false) {
-      setKeyHandler(initKeyBind);
-    }
-  }
-  ////////////////////////////////////////
-  // Hint Mode
-  ////////////////////////////////////////
-  function hintMode(newtab){
-    hint_str     = '';
-    hint_elems   = [];
-    hint_str_num = 0;
-    hint_open_in_new_tab = newtab ? true : false;
-    setHints();
-
-    var div = document.createElement('div');
-    div.setAttribute('id','follow_hint');
-    div.style.position   = "fixed";
-    div.style.bottom     = "0px";
-    div.style.left       = "0";
-    div.style.width      = "250px";
-    div.style.background = "#ff0";
-    div.style.textAlign  = "left";
-    div.style.fontSize   = "12px";
-    div.style.color      = "green";
-    div.style.fontWeight = "bold";
-    div.style.padding    = "5px";
-
-    div.innerHTML        = 'Follow Hint:';
-    var div_text = document.createElement('span');
-    div_text.setAttribute('id','follow_hint_text');
-    div_text.style.color      = "#000";
-    div_text.style.padding    = "5px";
-    div.appendChild(div_text);
-    document.body.appendChild(div);
-
-    setKeyHandler(hintHandler);
-  }
-
-  function hintHandler(e){
-    e.preventDefault();  //Stop Default Event
-    var pressedKey = get_key(e);
-
-    if (pressedKey =='Esc') {
-       removeHints();
-    } else {
-      if(pressedKey == 'Enter'){
-        highlightAndJumpCurrentHint('',true);
-      }else{
-        highlightAndJumpCurrentHint(pressedKey,false);
-      }
-    }
   }
 
   function highlightAndJumpCurrentHint(str,force_jump){
@@ -493,166 +639,41 @@
       document.body.removeChild(div);
     }
 
-    setKeyHandler(initKeyBind);
+    normalMode();
   }
   ////////////////////
 
-  function focusFirstTextInput(){
-    var elem = document.querySelector('input[type="text"],input:not([type])');
-    if (elem) {
-      elem.focus();
-      elem.setSelectionRange(elem.value.length, elem.value.length);
-    }
+
+  function smoothScrollBy(moment){
+    clearTimeout(next);
+    smoothScroll(moment);
   }
 
-  function blurFocus(){
-    document.activeElement.blur();
-  }
-
-  function moveFirstOrSelectAll(){
-    var elem = document.activeElement;
-    var caret_position = elem.selectionEnd;
-    if (caret_position == 0){
-      elem.setSelectionRange(0, elem.value.length); // select all text
+  function smoothScroll(moment){
+    if (moment > 0){
+      moment = Math.floor(moment / 2);
     }else{
-      elem.setSelectionRange(0, 0);
+      moment = Math.ceil(moment / 2);
+    }
+
+    scrollFunc(moment);
+
+    if (Math.abs(moment) < 1) {
+      setTimeout(function() { scrollFunc(moment); });
+      return;
+    }
+
+    next = setTimeout(function() { smoothScroll(moment); }, interval);
+  }
+
+  function scrollFunc(moment) {
+    if (flg == 'vertical') {
+      scrollBy(0, moment);
+    } else if (flg == 'horizontal') {
+      scrollBy(moment, 0);
     }
   }
 
-  function moveEnd(){
-    var elem = document.activeElement;
-    elem.setSelectionRange(elem.value.length, elem.value.length);
-  }
-
-  function moveForward(){
-    var elem = document.activeElement;
-    var caret_position = elem.selectionEnd;
-    elem.setSelectionRange(caret_position + 1, caret_position + 1);
-  }
-
-  function moveBackward(){
-    var elem = document.activeElement;
-    var caret_position = elem.selectionEnd;
-    elem.setSelectionRange(caret_position - 1, caret_position - 1);
-  }
-
-  function deleteForward(){
-    var elem = document.activeElement;
-    var caret_position = elem.selectionEnd;
-    var org_str = elem.value;
-    elem.value = org_str.substring(0, caret_position) + org_str.substring(caret_position + 1, org_str.length);
-    elem.setSelectionRange(caret_position, caret_position);
-  }
-
-  function deleteBackward(){
-    var elem = document.activeElement;
-    var caret_position = elem.selectionEnd;
-    var org_str = elem.value;
-    elem.value = org_str.substring(0, caret_position - 1) + org_str.substring(caret_position, org_str.length);
-    elem.setSelectionRange(caret_position - 1, caret_position - 1);
-  }
-
-  function deleteBackwardWord(){
-    var elem = document.activeElement;
-    var caret_position = elem.selectionEnd;
-    var org_str = elem.value;
-    elem.value = org_str.substring(0, caret_position - 1).replace(/\S*\s*$/,'') + org_str.substring(caret_position, org_str.length);
-    var position = elem.value.length - (org_str.length - caret_position);
-    elem.setSelectionRange(position,position);
-  }
-
-  function addKeyBind( key, func, eve ){
-    var pressedKey = get_key(eve);
-    if( pressedKey == key ){
-      eve.preventDefault();  //Stop Default Event
-      eval(func);
-      return true;
-    }
-    return false;
-  }
-
-  var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\/mail\//, /\/\/www\.pivotaltracker\.com\//];
-  for (var i = 0; i < exclude_urls.length; i++) {
-    if ( exclude_urls[i].test(location.href) ) {
-      passthroughMode();
-    } else {
-      normalMode();
-    }
-  }
-
-  function passthroughHandler(e) {
-    var t = e.target;
-    if( t.nodeType == 1){
-      var tn=t.tagName.toLowerCase();
-      if( tn == 'input' || tn == 'textarea' ){
-	addKeyBind( 'Esc', 'blurFocus()', e );
-	addKeyBind( 'C-[', 'blurFocus()', e ); // = Esc
-	addKeyBind( 'C-a', 'moveFirstOrSelectAll()', e );
-	addKeyBind( 'C-e', 'moveEnd()', e );
-	addKeyBind( 'C-f', 'moveForward()', e );
-	addKeyBind( 'C-b', 'moveBackward()', e );
-	addKeyBind( 'C-d', 'deleteForward()', e );
-	addKeyBind( 'C-h', 'deleteBackward()', e );
-	addKeyBind( 'C-w', 'deleteBackwardWord()', e );
-	return;
-      }
-    }
-    addKeyBind( 'Esc', 'normalMode()', e );
-  }
-
-  function normalMode() {
-    console.debug('normal mode');
-    setKeyHandler(initKeyBind);
-  }
-
-  function passthroughMode() {
-    console.debug('passthrough mode');
-    setKeyHandler(passthroughHandler);
-  }
-
-  function initKeyBind(e){
-    var t = e.target;
-    if( t.nodeType == 1){
-      var tn = t.tagName.toLowerCase();
-      if( tn == 'input' || tn == 'textarea' ){
-        addKeyBind( 'Esc', 'blurFocus()', e );
-        addKeyBind( 'C-[', 'blurFocus()', e ); // = Esc
-        addKeyBind( 'C-a', 'moveFirstOrSelectAll()', e );
-        addKeyBind( 'C-e', 'moveEnd()', e );
-        addKeyBind( 'C-f', 'moveForward()', e );
-        addKeyBind( 'C-b', 'moveBackward()', e );
-        addKeyBind( 'C-d', 'deleteForward()', e );
-        addKeyBind( 'C-h', 'deleteBackward()', e );
-        addKeyBind( 'C-w', 'deleteBackwardWord()', e );
-        return;
-      }
-      addKeyBind( 'j', 'smoothScrollDown()', e );
-      addKeyBind( 'k', 'smoothScrollUp()', e );
-      addKeyBind( 'h', 'smoothScrollLeft()', e );
-      addKeyBind( 'l', 'smoothScrollRight()', e );
-      addKeyBind( 'r', 'reload()', e );
-      addKeyBind( 'R', 'reloadAll()', e );
-      addKeyBind( 'd', 'closeTab()', e );
-      addKeyBind( 'u', 'reopenTab()', e );
-      addKeyBind( 'C-p', 'previousTab()', e );
-      addKeyBind( 'C-n', 'nextTab()', e );
-      addKeyBind( 'H', 'historyBack()', e );
-      addKeyBind( 'L', 'historyForward()', e );
-      addKeyBind( 'G', 'scrollToBottom()', e );
-      addKeyBind( '0', 'scrollToFirst()', e );
-      addKeyBind( '$', 'scrollToLast()', e );
-      addKeyBind( 'Esc', 'blurFocus()', e );
-      addKeyBind( 'C-[', 'blurFocus()', e ); // = Esc
-      addKeyBind( 'g', 'gMode()', e );
-      addKeyBind( ']', 'pageMode("]")', e );
-      addKeyBind( '[', 'pageMode()', e );
-      addKeyBind( 'z', 'zMode()', e );
-      addKeyBind( 'f', 'hintMode()', e );
-      addKeyBind( 'F', 'hintMode(true)', e );
-      addKeyBind( 'C-z', 'passthroughMode()', e);
-    }
-    return false;
-  }
 
   var keyId = {
     "U+0008" : "BackSpace",
