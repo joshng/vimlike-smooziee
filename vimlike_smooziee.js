@@ -1,24 +1,8 @@
 (function(){
-  var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\/mail\//, /\/\/www\.pivotaltracker\.com\//];
-
   console.debug('loading vim-mode');
 
-  // TODO
-  var interval = 20;
-  var vertical_moment = 250;
-  var horizontal_moment = 100;
-  var next;
-  var flg;
+  var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\/mail\//, /\/\/www\.pivotaltracker\.com\//];
 
-  var hint_str = '';
-  var hint_str_num = 0;
-  var hint_elems = [];
-  var hint_elems_filter = [];
-  var hint_open_in_new_tab = false;
-
-  var zoom_settings = [];
-  var zoom_levels = ['30%', '50%', '67%', '80%', '90%', '100%', '110%', '120%', '133%', '150%', '170%', '200%', '240%', '300%'];
-  var default_zoom_index = zoom_levels.indexOf('100%');
 
   var currentKeyMap;
   var nextKeyMap;
@@ -27,50 +11,32 @@
   }
 
   function handleKeyDown(e) {
-    var t = e.target;
-    if( t.nodeType == 1){
-      var tn = t.tagName.toLowerCase();
-      if( tn == 'input' || tn == 'textarea' ){
-	return;
-      }
+    if (TextInputKeyMap.willHandleKeyDown(e)) {
+      TextInputKeyMap.handleKeyDown(e);
+      return;
     }
 
-    nextKeyMap = currentKeyMap._nextKeyMapDefault;
-    currentKeyMap._handleKeyDown(e);
+    nextKeyMap = currentKeyMap.defaultNextKeyMap;
+    currentKeyMap.handleKeyDown(e);
     currentKeyMap = nextKeyMap;
   }
   document.addEventListener('keydown', handleKeyDown, false);
 
-  chrome.extension.onConnect.addListener(function(port) {
-    port.onMessage.addListener(function(msg) {
-      var tab = port.tab;
-      switch(msg.action){
-      case "remove_hints":
-        removeHints();
-        break;
-      }
-    });
-  });
-
   var Action = {
     smoothScrollDown: function(){
-      flg = 'vertical';
-      smoothScrollBy(vertical_moment);
+      smoothScrollBy(vertical_moment, true);
     },
 
     smoothScrollUp: function(){
-      flg = 'vertical';
-      smoothScrollBy(-vertical_moment);
+      smoothScrollBy(-vertical_moment, true);
     },
 
     smoothScrollRight: function(){
-      flg = 'horizontal';
-      smoothScrollBy(horizontal_moment);
+      smoothScrollBy(horizontal_moment, false);
     },
 
     smoothScrollLeft: function(){
-      flg = 'horizontal';
-      smoothScrollBy(-horizontal_moment);
+      smoothScrollBy(-horizontal_moment, false);
     },
 
     scrollToTop: function(){
@@ -153,16 +119,16 @@
       setZoomCountup(-3, domain);
     },
 
-    gMode: function(){
-      setNextKeyMap(gModeKeyMap);
+    navMode: function(){
+      setNextKeyMap(NavModeKeyMap);
     },
 
-    pageMode: function(key){
-      if (key == ']'){
-	setNextKeyMap(NextPageKeyMap);
-      } else {
-	setNextKeyMap(PrevPageKeyMap);
-      }
+    nextPageMode: function() {
+      setNextKeyMap(NextPageKeyMap);
+    },
+
+    prevPageMode: function() {
+      setNextKeyMap(PrevPageKeyMap);
     },
 
     nextPage: function(){
@@ -183,46 +149,14 @@
       }
     },
 
-    zMode: function(){
-      setNextKeyMap(zModeKeyMap);
+    zoomMode: function(){
+      setNextKeyMap(ZoomModeKeyMap);
     },
 
-    ////////////////////////////////////////
-    // Hint Mode
-    ////////////////////////////////////////
-    hintMode: function(newtab){
-      hint_str     = '';
-      hint_elems   = [];
-      hint_str_num = 0;
-      hint_open_in_new_tab = newtab ? true : false;
-      setHints();
-
-      var div = document.createElement('div');
-      div.setAttribute('id','follow_hint');
-      div.style.position   = "fixed";
-      div.style.bottom     = "0px";
-      div.style.left       = "0";
-      div.style.width      = "250px";
-      div.style.background = "#ff0";
-      div.style.textAlign  = "left";
-      div.style.fontSize   = "12px";
-      div.style.color      = "green";
-      div.style.fontWeight = "bold";
-      div.style.padding    = "5px";
-
-      div.innerHTML        = 'Follow Hint:';
-      var div_text = document.createElement('span');
-      div_text.setAttribute('id','follow_hint_text');
-      div_text.style.color      = "#000";
-      div_text.style.padding    = "5px";
-      div.appendChild(div_text);
-      document.body.appendChild(div);
-
-      setNextKeyMap(HintKeyMap);
-    },
+    hintMode: hintMode,
 
     newTabHintMode: function() {
-      this.hintMode(true);
+      hintMode(true);
     },
 
     focusFirstTextInput: function(){
@@ -295,37 +229,41 @@
     passthroughMode: passthroughMode
   };
 
-  function KeyMap(mappings) {
-    this.map = mappings;
+  function KeyMap(bindings) {
+    this.bindings = bindings;
   }
 
   KeyMap.prototype = {
-    _handleKeyDown: function(e) {
+    handleKeyDown: function(e) {
       var key = get_key(e);
       console.debug('handling key: ' + key);
-      var action = this.map[key];
+      var action = this.bindings[key];
       if (action) {
 	e.preventDefault();
 	action.call(this);
 	return true;
       }
       return false;
-
-      // this._afterKeyDown(action != null);
     }
   };
 
-  // var TextInputNormalModeKeyMap = new KeyMap({
-  //   'Esc': Action.blurFocus,
-  //   'C-[': Action.blurFocus,
-  //   'C-a': Action.moveFirstOrSelectAll,
-  //   'C-e': Action.moveEnd,
-  //   'C-f': Action.moveForward,
-  //   'C-b': Action.moveBackward,
-  //   'C-d': Action.deleteForward,
-  //   'C-h': Action.deleteBackward,
-  //   'C-w': Action.deleteBackwardWord,
-  // });
+  var TextInputKeyMap = new KeyMap({
+    'Esc': Action.blurFocus,
+    'C-[': Action.blurFocus,
+    // 'C-a': Action.moveFirstOrSelectAll,
+    // 'C-e': Action.moveEnd,
+    // 'C-f': Action.moveForward,
+    // 'C-b': Action.moveBackward,
+    // 'C-d': Action.deleteForward,
+    // 'C-h': Action.deleteBackward,
+    // 'C-w': Action.deleteBackwardWord,
+  });
+
+  TextInputKeyMap.willHandleKeyDown = function(e) {
+    var t = e.target;
+    var tn = t.nodeName;
+    return (tn == 'INPUT' || tn == 'TEXTAREA' || t.attributes.getNamedItem('contentEditable') != null);
+  };
 
   var NormalKeyMap = new KeyMap({
     'j': Action.smoothScrollDown,
@@ -345,22 +283,22 @@
     '$': Action.scrollToLast,
     'Esc': Action.blurFocus,
     'C-[': Action.blurFocus,
-    'g': Action.gMode,
-    ']': Action.pageMode,
-    '[': Action.pageMode,
-    'z': Action.zMode,
+    'g': Action.navMode,
+    ']': Action.nextPageMode,
+    '[': Action.prevPageMode,
+    'z': Action.zoomMode,
     'f': Action.hintMode,
     'F': Action.newTabHintMode,
     'C-z': Action.passthroughMode
   });
 
 
-  KeyMap.prototype._nextKeyMapDefault = NormalKeyMap;
+  KeyMap.prototype.defaultNextKeyMap = NormalKeyMap;
 
   var PassthroughKeyMap = new KeyMap({
     Esc: normalMode
   });
-  PassthroughKeyMap._nextKeyMapDefault = PassthroughKeyMap;
+  PassthroughKeyMap.defaultNextKeyMap = PassthroughKeyMap;
 
   function normalMode() {
     console.debug('normal mode');
@@ -371,6 +309,7 @@
     console.debug('passthrough mode');
     setNextKeyMap(PassthroughKeyMap);
   }
+
 
   nextKeyMap = NormalKeyMap;
   for (var i = 0; i < exclude_urls.length; i++) {
@@ -390,12 +329,13 @@
     '[': Action.prevPage
   });
 
-  var gModeKeyMap = new KeyMap({
+  var NavModeKeyMap = new KeyMap({
     g: Action.scrollToTop,
     i: Action.focusFirstTextInput
   });
 
-  var zModeKeyMap = new KeyMap({
+  //////////////// ZOOM MODE //////////
+  var ZoomModeKeyMap = new KeyMap({
     z: Action.zoomDefault,
     i: Action.zoomIn,
     o: Action.zoomOut,
@@ -404,23 +344,9 @@
   });
 
 
-  var HintKeyMap = {
-    _handleKeyDown: function(e) {
-      e.preventDefault();  //Stop Default Event
-      var pressedKey = get_key(e);
-
-      if (pressedKey =='Esc') {
-	removeHints();
-      } else {
-	if(pressedKey == 'Enter'){
-	  highlightAndJumpCurrentHint('',true);
-	}else{
-	  highlightAndJumpCurrentHint(pressedKey,false);
-	}
-      }
-    }
-  };
-  HintKeyMap._nextKeyMapDefault = HintKeyMap;
+  var zoom_settings = [];
+  var zoom_levels = ['30%', '50%', '67%', '80%', '90%', '100%', '110%', '120%', '133%', '150%', '170%', '200%', '240%', '300%'];
+  var default_zoom_index = zoom_levels.indexOf('100%');
 
   function setZoomCountup(countup, domain) {
     var now_zoom_level = zoom_settings[domain];
@@ -454,6 +380,74 @@
       return 1;
     }
     return ( parseInt(zoom_levels[zoom_level]) / 100 );
+  }
+  //////////// END ZOOM MODE //////////
+
+  ///////////////// HINT MODE ////////////////
+  var hint_str = '';
+  var hint_str_num = 0;
+  var hint_elems = [];
+  var hint_elems_filter = [];
+  var hint_open_in_new_tab = false;
+
+  var HintKeyMap = {
+    handleKeyDown: function(e) {
+      e.preventDefault();  //Stop Default Event
+      var pressedKey = get_key(e);
+
+      if (pressedKey =='Esc') {
+	removeHints();
+      } else {
+	if(pressedKey == 'Enter'){
+	  highlightAndJumpCurrentHint('',true);
+	}else{
+	  highlightAndJumpCurrentHint(pressedKey,false);
+	}
+      }
+    }
+  };
+  HintKeyMap.defaultNextKeyMap = HintKeyMap;
+
+  chrome.extension.onConnect.addListener(function(port) {
+    port.onMessage.addListener(function(msg) {
+      var tab = port.tab;
+      switch(msg.action){
+      case "remove_hints":
+        removeHints();
+        break;
+      }
+    });
+  });
+
+  function hintMode(newTab) {
+    hint_str     = '';
+    hint_elems   = [];
+    hint_str_num = 0;
+    hint_open_in_new_tab = newtab || false;
+    setHints();
+
+    var div = document.createElement('div');
+    div.setAttribute('id','follow_hint');
+    div.style.position   = "fixed";
+    div.style.bottom     = "0px";
+    div.style.left       = "0";
+    div.style.width      = "250px";
+    div.style.background = "#ff0";
+    div.style.textAlign  = "left";
+    div.style.fontSize   = "12px";
+    div.style.color      = "green";
+    div.style.fontWeight = "bold";
+    div.style.padding    = "5px";
+
+    div.innerHTML        = 'Follow Hint:';
+    var div_text = document.createElement('span');
+    div_text.setAttribute('id','follow_hint_text');
+    div_text.style.color      = "#000";
+    div_text.style.padding    = "5px";
+    div.appendChild(div_text);
+    document.body.appendChild(div);
+
+    setNextKeyMap(HintKeyMap);
   }
 
   function highlightAndJumpCurrentHint(str,force_jump){
@@ -641,11 +635,18 @@
 
     normalMode();
   }
-  ////////////////////
+  ///////// END HINT MODE ///////////
 
+  /////// SCROLLING //////////
+  var interval = 20;
+  var vertical_moment = 250;
+  var horizontal_moment = 100;
+  var scrollTimeout;
+  var scrollingVertically;
 
-  function smoothScrollBy(moment){
-    clearTimeout(next);
+  function smoothScrollBy(moment, vertical){
+    scrollingVertically = vertical;
+    clearTimeout(scrollTimeout);
     smoothScroll(moment);
   }
 
@@ -663,16 +664,17 @@
       return;
     }
 
-    next = setTimeout(function() { smoothScroll(moment); }, interval);
+    scrollTimeout = setTimeout(function() { smoothScroll(moment); }, interval);
   }
 
   function scrollFunc(moment) {
-    if (flg == 'vertical') {
+    if (scrollingVertically) {
       scrollBy(0, moment);
-    } else if (flg == 'horizontal') {
+    } else {
       scrollBy(moment, 0);
     }
   }
+  ////// END SCROLLING ///////
 
 
   var keyId = {
