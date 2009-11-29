@@ -32,16 +32,19 @@ var HintMode = (function() {
 
     var div = document.createElement('div');
     div.setAttribute('id','follow_hint');
-    div.style.position   = "fixed";
-    div.style.bottom     = "0px";
-    div.style.left       = "0";
-    div.style.width      = "250px";
-    div.style.background = "#ff0";
-    div.style.textAlign  = "left";
-    div.style.fontSize   = "12px";
-    div.style.color      = "green";
-    div.style.fontWeight = "bold";
-    div.style.padding    = "5px";
+    extend(div.style, {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      width: '250px',
+      background: '#ff0',
+      textAlign: 'left',
+      fontSize: '12px',
+      color: 'green',
+      padding: '2px 2px 2px 10px',
+      border: 'thin solid #f00',
+      zIndex: 10000
+    });
 
     div.innerHTML        = 'Follow Hint:';
     var div_text = document.createElement('span');
@@ -69,11 +72,17 @@ var HintMode = (function() {
 
   function highlightAndJumpCurrentHint(str,force_jump){
     if(/^\d$/.test(str)){
-      hint_str_num = hint_str_num * 10 + Number(str) - 1;
-      setHighlight(hint_elems_filter[hint_str_num],true); //FIXME set color not a link
+      hint_str_num = hint_str_num * 10 + Number(str);
 
-      if (force_jump || ((hint_str_num + 1)* 10 > hint_elems_filter.length)){
-        return execSelect( hint_elems_filter[hint_str_num] );
+      var cur = hint_str_num - 1;
+      setHighlight(hint_elems_filter[cur],true);
+
+      var text = document.getElementById('follow_hint_text').innerHTML;
+      text = text.replace(/(\s\(\d+\))?$/,' (' + hint_str_num + ')');
+      document.getElementById('follow_hint_text').innerHTML = text;
+
+      if (force_jump || ((cur + 1)* 10 > hint_elems_filter.length)){
+        return execSelect( hint_elems_filter[cur] );
       }
     }else{
       if(str == 'BackSpace'){
@@ -82,8 +91,7 @@ var HintMode = (function() {
         hint_str = hint_str + str;
       }
 
-      var div = document.getElementById('follow_hint_text');
-      div.innerHTML = hint_str;
+      document.getElementById('follow_hint_text').innerHTML = hint_str;
 
       hint_str_num      = 0
       hint_elems_filter = [];
