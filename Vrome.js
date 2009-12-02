@@ -9,26 +9,22 @@ var Vrome = (function(){
 
     nextMode = currentMode.defaultNextMode;
     currentMode.handleKeyDown(e);
-    currentMode = nextMode;
+    Vrome.switchToNextMode();
   }
+
   document.addEventListener('keydown', handleKeyDown, false);
 
-  var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\//, /\/\/www\.pivotaltracker\.com\//];
-
   var nextMode = NormalMode;
-
-  for (var i = 0; i < exclude_urls.length; i++) {
-    if (exclude_urls[i].test(location.href)) {
-      PassthroughMode.activate();
-      break;
-    }
-  }
-
   var currentMode = nextMode;
+
 
   var PUBLIC = {
     setNextMode: function(mode) {
       nextMode = mode;
+    },
+
+    switchToNextMode: function() {
+      currentMode = nextMode;
     },
 
     interpretKey: function(evt){
@@ -157,3 +153,14 @@ var Vrome = (function(){
 
   return PUBLIC;
 })();
+
+var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\//, /\/\/www\.pivotaltracker\.com\//];
+
+for (var i = 0; i < exclude_urls.length; i++) {
+  if (exclude_urls[i].test(location.href)) {
+    PassthroughMode.activate();
+    break;
+  }
+}
+
+Vrome.switchToNextMode();
