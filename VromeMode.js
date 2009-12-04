@@ -4,7 +4,7 @@ function VromeMode(bindings) {
 
 VromeMode.prototype = {
   handleKeyDown: function(e) {
-    var key = Vrome.interpretKey(e);
+    var key = KeyEvent.interpret(e);
     console.debug('handling key: ' + key);
     var action = this.bindings[key];
     if (action) {

@@ -22,7 +22,8 @@ var NormalMode = new VromeMode({
   'z': Action.zoomMode,
   'f': Action.hintMode,
   'F': Action.newTabHintMode,
-  'C-z': Action.passthroughMode
+	'C-z': Action.passthroughMode,
+	'/': Action.forwardSearch
 });
 
 VromeMode.prototype.defaultNextMode = NormalMode;

@@ -197,6 +197,11 @@ var Action = {
     elem.setSelectionRange(position,position);
   },
 
+	forwardSearch: function() {
+    cmdWindow().fadeIn();
+    cmdline().val('/')[0].focus();
+	},
+
   normalMode: function() { NormalMode.activate(); },
 
   passthroughMode: function() { PassthroughMode.activate(); }

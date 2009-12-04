@@ -1,0 +1,13 @@
+#__vrome_cmdline_div {
+  position: fixed;
+  width: 60%;
+  bottom: 2px;
+  right: 2px;
+  border: 1px solid black;
+  z-index: 10000000;
+  display: none;
+}
+#__vrome_cmdline {
+  width: 100%;
+  font: Arial; font-size: 11px;
+}

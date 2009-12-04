@@ -8,7 +8,7 @@ var HintMode = (function() {
   var PUBLIC = {
     handleKeyDown: function(e) {
       e.preventDefault();  //Stop Default Event
-      var pressedKey = Vrome.interpretKey(e);
+      var pressedKey = KeyEvent.interpret(e);
 
       if (pressedKey =='Esc') {
 	removeHints();
