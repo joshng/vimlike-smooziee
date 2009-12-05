@@ -23,7 +23,10 @@ var NormalMode = new VromeMode({
   'f': Action.hintMode,
   'F': Action.newTabHintMode,
 	'C-z': Action.passthroughMode,
-	'/': Action.forwardSearch
+	'/': Action.forwardSearch,
+	'?': Action.backwardSearch,
+	'n': Action.repeatSearch,
+	'N': Action.reverseSearch,
 });
 
 VromeMode.prototype.defaultNextMode = NormalMode;

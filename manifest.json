@@ -9,10 +9,6 @@
     "run_at": "document_start",
     "matches": [ "http://*/*", "https://*/*", "ftp://*/*"]
   } ],
-  // "browser_action": {
-    // "default_icon": "tmp/passhash.png",
-    // "popup": "cmdline.html"
-  // },
   "permissions": [
     "tabs"
   ]

@@ -198,9 +198,26 @@ var Action = {
   },
 
 	forwardSearch: function() {
-    cmdWindow().fadeIn();
-    cmdline().val('/')[0].focus();
+    CmdLine.query('(/) Forward search:', Search.getLastSearchString(), function(searchString) {
+      Search.find(searchString);
+    }); 
+    // cmdWindow().fadeIn();
+    // cmdline().val('/')[0].focus();
 	},
+
+  backwardSearch: function() {
+    CmdLine.query('(?) Backward search:', Search.getLastSearchString(), function(searchString) {
+      Search.find(searchString, true);
+    }); 
+  },
+
+  repeatSearch: function() {
+    Search.repeat();
+  },
+
+  reverseSearch: function() {
+    Search.repeat(true);
+  },
 
   normalMode: function() { NormalMode.activate(); },
 
