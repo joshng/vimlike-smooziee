@@ -32,3 +32,7 @@
   outline: 1px;
   background-color: #F6F6F6;
 }
+
+.__vrome_link_highlight {
+  border: 1px dotted #555;
+}

@@ -22,11 +22,12 @@ var NormalMode = new VromeMode({
   'z': Action.zoomMode,
   'f': Action.hintMode,
   'F': Action.newTabHintMode,
-	'C-z': Action.passthroughMode,
-	'/': Action.forwardSearch,
-	'?': Action.backwardSearch,
-	'n': Action.repeatSearch,
-	'N': Action.reverseSearch,
+  'C-z': Action.passthroughMode,
+  '/': Action.forwardSearch,
+  '?': Action.backwardSearch,
+  'n': Action.repeatSearch,
+  'N': Action.reverseSearch,
+  'Enter': Action.followSelectedLink
 });
 
 VromeMode.prototype.defaultNextMode = NormalMode;

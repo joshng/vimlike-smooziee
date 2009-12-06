@@ -237,6 +237,10 @@ var Action = {
     Search.repeat(true);
   },
 
+  followSelectedLink: function() {
+    Search.followSelectedLink();
+  },
+
   normalMode: function() { NormalMode.activate(); },
 
   passthroughMode: function() { PassthroughMode.activate(); }
