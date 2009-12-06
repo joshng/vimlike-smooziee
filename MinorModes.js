@@ -8,7 +8,9 @@ var PrevPageMode = new VromeMode({
 
 var NavMode = new VromeMode({
   g: Action.scrollToTop,
-  i: Action.focusFirstTextInput
+  i: Action.focusFirstTextInput,
+  u: Action.parentDirectory,
+  U: Action.rootDirectory
 });
 
 var PassthroughMode = new VromeMode({

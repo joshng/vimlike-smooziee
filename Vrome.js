@@ -2,13 +2,16 @@ var Vrome = (function(){
   console.debug('loading vim-mode (Vrome)');
 
   function handleKeyDown(e) {
+    var key = KeyEvent.interpret(e);
+    if (!key) return;
+
     if (TextInputMode.willHandleKeyDown(e)) {
-      TextInputMode.handleKeyDown(e);
+      TextInputMode.handleKeyDown(key, e);
       return;
     }
 
     nextMode = currentMode.defaultNextMode;
-    currentMode.handleKeyDown(e);
+    currentMode.handleKeyDown(key, e);
     Vrome.switchToNextMode();
   }
 

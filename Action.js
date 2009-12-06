@@ -33,6 +33,24 @@ var Action = {
     scroll(document.documentElement.scrollWidth, scrollTop);
   },
 
+  parentDirectory: function() {
+    if (location.pathname != '/') {
+      var segments = location.pathname.split('/');
+      segments.splice(segments.length - 1, 1);
+      location.pathname = segments.join('/');
+    } else {
+      var segments = location.hostname.split('.');
+      if (segments.length > 2) {
+        segments.shift();
+        document.location = location.protocol + '//' + segments.join('.');
+      }
+    }
+  },
+
+  rootDirectory: function() {
+    location.pathname = '/';
+  },
+
   reload: function(){
     location.reload();
   },
@@ -106,7 +124,7 @@ var Action = {
     elems = document.getElementsByTagName('a');
     for(var cur in elems){
       if(new RegExp('>>|下一页|»|Next|more*','im').test(elems[cur].innerText)){
-	document.location = elems[cur].href;
+        document.location = elems[cur].href;
       }
     }
   },
@@ -115,7 +133,7 @@ var Action = {
     elems = document.getElementsByTagName('a');
     for(var cur in elems){
       if(new RegExp('<<|«|上一页|Prev','im').test(elems[cur].innerText)){
-	document.location = elems[cur].href;
+        document.location = elems[cur].href;
       }
     }
   },

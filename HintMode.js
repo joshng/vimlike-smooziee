@@ -6,18 +6,17 @@ var HintMode = (function() {
   var hint_open_in_new_tab = false;
 
   var PUBLIC = {
-    handleKeyDown: function(e) {
+    handleKeyDown: function(pressedKey, e) {
       e.preventDefault();  //Stop Default Event
-      var pressedKey = KeyEvent.interpret(e);
 
       if (pressedKey =='Esc') {
 	removeHints();
       } else {
-	if(pressedKey == 'Enter'){
-	  highlightAndJumpCurrentHint('',true);
-	}else{
-	  highlightAndJumpCurrentHint(pressedKey,false);
-	}
+        if(pressedKey == 'Enter'){
+          highlightAndJumpCurrentHint('',true);
+        }else{
+          highlightAndJumpCurrentHint(pressedKey,false);
+        }
       }
     }
   };

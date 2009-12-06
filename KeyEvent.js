@@ -96,11 +96,12 @@ var KeyEvent = (function() {
 
 	return {
 		interpret: function(evt){
-			var key = keyId[evt.keyIdentifier] || evt.keyIdentifier,
-			ctrl = evt.ctrlKey ? 'C-' : '',
+			var key = keyId[evt.keyIdentifier] || evt.keyIdentifier;
+      if (/^(Meta|Shift|Control|Alt|Undefined)$/.test(key)) return null;
+
+			var ctrl = evt.ctrlKey ? 'C-' : '',
 			meta = (evt.metaKey || evt.altKey) ? 'M-' : '',
 			shift = evt.shiftKey ? 'S-' : '';
-			//    if (/^(Meta|Shift|Control|Alt)$/.test(key)) return key; // safari only
 			if (evt.shiftKey){
 				if (/^[a-z]$/.test(key)){
 					return ctrl+meta+key.toUpperCase();

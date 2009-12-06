@@ -3,8 +3,7 @@ function VromeMode(bindings) {
 }
 
 VromeMode.prototype = {
-  handleKeyDown: function(e) {
-    var key = KeyEvent.interpret(e);
+  handleKeyDown: function(key, e) {
     console.debug('handling key: ' + key);
     var action = this.bindings[key];
     if (action) {
