@@ -198,7 +198,7 @@ var Action = {
   },
 
 	forwardSearch: function() {
-    CmdLine.query('(/) Forward search:', Search.getLastSearchString(), function(searchString) {
+    CmdLine.query('Forward search: /', Search.getLastSearchString(), function(searchString) {
       Search.find(searchString);
     }); 
     // cmdWindow().fadeIn();
@@ -206,7 +206,7 @@ var Action = {
 	},
 
   backwardSearch: function() {
-    CmdLine.query('(?) Backward search:', Search.getLastSearchString(), function(searchString) {
+    CmdLine.query('Backward search: ?', Search.getLastSearchString(), function(searchString) {
       Search.find(searchString, true);
     }); 
   },

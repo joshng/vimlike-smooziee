@@ -16,7 +16,16 @@ var Search = (function() {
         string = lastSearchString;
       }
       searchingBackward = backward;
-      window.find(string, caseSensitive(string), opposite ^ backward);
+      var reallyBackward = opposite ^ backward;
+      if (!window.find(string, caseSensitive(string), reallyBackward)) {
+        // TODO: this isn't working; if the search fails, we should collapse any misleading
+        // selection
+        if (reallyBackward) {
+          window.getSelection().collapseToStart();
+        } else {
+          window.getSelection().collapseToEnd();
+        }
+      }
     },
 
     repeat: function(oppositeDirection) {
