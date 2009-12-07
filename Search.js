@@ -27,8 +27,8 @@ var Search = (function() {
       if (window.find(string, caseSensitive(string), reallyBackward)) {
         var anchorNode = window.getSelection().anchorNode;
         if (anchorNode.nodeName == 'A') {
-          selectedLlink = anchorNode;
-        } else if (anchorNode.parentElement.nodeName = 'A') {
+          selectedLink = anchorNode;
+        } else if (anchorNode.parentElement.nodeName == 'A') {
           selectedLink = anchorNode.parentElement;
         }
 
