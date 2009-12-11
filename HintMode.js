@@ -10,7 +10,7 @@ var HintMode = (function() {
       e.preventDefault();  //Stop Default Event
 
       if (pressedKey =='Esc') {
-	removeHints();
+        removeHints();
       } else {
         if(pressedKey == 'Enter'){
           highlightAndJumpCurrentHint('',true);
@@ -31,7 +31,7 @@ var HintMode = (function() {
 
     var div = document.createElement('div');
     div.setAttribute('id','follow_hint');
-    extend(div.style, {
+    Object.extend(div.style, {
       position: 'fixed',
       bottom: 0,
       left: 0,
