@@ -24,9 +24,10 @@
       "Scroller.js",
       "Vrome.js",
       "Search.js",
+      "Status.js",
       "CmdLine.js"
       ],
-    "css": ["cmdline.css"],
+    "css": ["vrome.css"],
     "run_at": "document_start",
     "matches": [ "http://*/*", "https://*/*", "ftp://*/*"]
   } ],

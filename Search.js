@@ -37,6 +37,7 @@ var Search = (function() {
           $(selectedLink).addClass(linkHighlightClass);
         }
       } else {
+        Status.show("Not found: " + string);
         // TODO: this isn't working; if the search fails, we should collapse any misleading
         // selection
         if (reallyBackward) {
