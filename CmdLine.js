@@ -1,6 +1,6 @@
 var CmdLine = (function() {
-  var cmdHistory = [];
-  var cmdHistoryIdx = 0;
+  var cmdHistory = new HashWithDefault(function() { return [] });
+  var workingCmdHistory, currentCmdHistory, cmdHistoryIdx;
 
   function cmdline() {
     return $('#__vrome_cmdline');
@@ -20,14 +20,21 @@ var CmdLine = (function() {
         case 'Esc':
           hide();
           break;
+        case 'Up':
+        case 'C-p':
+          workingCmdHistory[cmdHistoryIdx] = this.value;
+          cmdHistoryIdx = (cmdHistoryIdx + 1) % workingCmdHistory.length;
+          this.value = workingCmdHistory[cmdHistoryIdx];
+          break;
+        case 'Down':
+        case 'C-n':
+          workingCmdHistory[cmdHistoryIdx] = this.value;
+          cmdHistoryIdx = (cmdHistoryIdx - 1 + workingCmdHistory.length) % workingCmdHistory.length;
+          this.value = workingCmdHistory[cmdHistoryIdx];
+          break;
         case 'Enter':
-          hide();
-          // FALLTHROUGH
-        default:
-          var input = this.value;
-          if (input) {
-            commandCallback(input);
-          }
+          hide(this.value);
+          break;
       }
     }).blur(function() {
       hide();
@@ -43,12 +50,21 @@ var CmdLine = (function() {
     for (var i = 0; i < sel.rangeCount; i++) {
       selection[i] = sel.getRangeAt(i);
     }
+    currentCmdHistory = cmdHistory.get(promptString);
+    workingCmdHistory = currentCmdHistory.clone();
+    workingCmdHistory.unshift('');
+    cmdHistoryIdx = 0;
     
     cmdWindow().fadeIn('fast');
     cmdline().val('')[0].focus();
   }
 
-  function hide() {
+  function hide(input) {
+    if (input) {
+      currentCmdHistory.unshift(input);
+    }
+
+    workingCmdHistory = currentCmdHistory = null;
     cmdWindow().hide();
     cmdline()[0].blur()
     var sel = window.getSelection();
@@ -56,6 +72,10 @@ var CmdLine = (function() {
     selection.forEach(function(range) {
       sel.addRange(range);
     });
+
+    if (input) {
+      commandCallback(input);
+    }
   }
 
   return {
