@@ -87,15 +87,16 @@ var CmdLine = (function() {
 
   var commandHandlers = {
     tabopen: function(args) {
-      Vrome.extension.openTab(cleanUrl($A(arguments).join(' ')));
+      alert("BUSTED JSON: " + JSON.stringify(['string']));
+      Vrome.extension.openTab(fixUrl($A(arguments).join(' ')));
     },
     open: function(url) {
-      document.location = cleanUrl($A(arguments).join(' '));
+      document.location = fixUrl($A(arguments).join(' '));
     }
   };
   var commands = Object.keys(commandHandlers);
 
-  function cleanUrl(url) {
+  function fixUrl(url) {
     if (!url.match(/^(https?:\/\/)?[a-z0-9-]+\.[a-z0-9.-]+/i)) {
       return 'http://www.google.com/search?q=' + escape(url);
     }
