@@ -1,32 +1,37 @@
-#__vrome_cmdline_div {
+#__vrome_cmdline_frame {
   position: fixed;
   width: 60%;
   bottom: 2px;
   right: 2px;
-  border: 1px solid #CCC;
   z-index: 10000000;
   display: none;
   padding: 2px;
-  background-color: #FFC;
 }
 #__vrome_cmdline_prompt {
   float: left;
   padding: 0 2px;
-  font: helvetica;
+  font-family: helvetica;
   font-weight: bold;
   font-size: 11px;
+  color: black;
 }
 #__vrome_cmdline_closebox {
   color: red;
   float: right;
+  font-family: helvetica;
   font-weight: bold;
   font-size: 12px;
   margin-right: 4px;
   cursor: pointer;
 }
+#__vrome_cmdline_anim {
+  width: 100%;
+  border: 1px solid #CCC;
+  background-color: #FFC;
+}
 #__vrome_cmdline {
   width: 70%;
-  font: helvetica;
+  font-family: helvetica;
   font-size: 11px;
   border: 1px solid #DDD;
   outline: 1px;
@@ -51,8 +56,21 @@
 #__vrome_status {
   float: left;
   padding: 0 2px;
-  font: helvetica;
+  font-family: helvetica;
   font-weight: bold;
   font-size: 12px;
   color: red;
+}
+@-webkit-keyframes "wiggle-in"{
+  from {
+    -webkit-animation-timing-function:ease-in;
+    -webkit-transform: scaleY(0) rotate(-20deg);
+  }
+  to {
+  }
+}
+
+.__vrome_wiggle-in {
+  -webkit-animation-name:wiggle-in;
+  -webkit-animation-duration:0.3s;
 }

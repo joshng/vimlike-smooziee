@@ -17,8 +17,7 @@ var Vrome = (function(){
 
   document.addEventListener('keydown', handleKeyDown, false);
 
-  var nextMode = NormalMode;
-  var currentMode = nextMode;
+  var nextMode, currentMode;
 
 	chrome.extension.onConnect.addListener(function(port, name) {
 		port.onMessage.addListener(function(msg) {
@@ -31,6 +30,20 @@ var Vrome = (function(){
 	});
 	
 
+  var extensionPort = chrome.extension.connect();
+
+  var extensionMethods = $w('closeTab reopenTab previousTab nextTab openUrl openTab reloadAllTabs');
+
+  var extensionProxy = extensionMethods.mapTo(function(method) {
+    return function() {
+      var args = [];
+      for (var i = 0; i < arguments.length; i++) {
+        args[i] = arguments[i].toString();
+      }
+      extensionPort.postMessage({method: method, args: args});
+    }
+  })._object;
+
   return {
     setNextMode: function(mode) {
       nextMode = mode;
@@ -39,16 +52,22 @@ var Vrome = (function(){
     switchToNextMode: function() {
       currentMode = nextMode;
     },
+
+    extension: extensionProxy,
+    extensionMethods: extensionMethods
   };
 })();
 
 var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\//, /\/\/www\.pivotaltracker\.com\//];
 
-for (var i = 0; i < exclude_urls.length; i++) {
-  if (exclude_urls[i].test(location.href)) {
-    PassthroughMode.activate();
-    break;
+$(function() {
+  NormalMode.activate();
+  for (var i = 0; i < exclude_urls.length; i++) {
+    if (exclude_urls[i].test(location.href)) {
+      PassthroughMode.activate();
+      break;
+    }
   }
-}
 
-Vrome.switchToNextMode();
+  Vrome.switchToNextMode();
+})

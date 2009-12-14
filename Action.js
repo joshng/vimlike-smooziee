@@ -55,31 +55,6 @@ var Action = {
     location.reload();
   },
 
-  reloadAll: function(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "reload_all_tabs"});
-  },
-
-  closeTab: function(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "close_tab"});
-  },
-
-  reopenTab: function(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "reopen_tab"});
-  },
-
-  previousTab: function(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "previous_tab"});
-  },
-
-  nextTab: function(){
-    var port = chrome.extension.connect();
-    port.postMessage({action: "next_tab"});
-  },
-
   historyBack: function(){
     history.back();
   },
@@ -215,8 +190,24 @@ var Action = {
     elem.setSelectionRange(position,position);
   },
 
+  openUrl: function() {
+    CmdLine.getCmd('open ');
+  },
+
+  openTab: function() {
+    CmdLine.getCmd('tabopen ');
+  },
+
+  editUrl: function() {
+    CmdLine.getCmd('open ' + location.href);
+  },
+
+  showCommandLine: function() {
+    CmdLine.getCmd('');
+  },
+
 	forwardSearch: function() {
-    CmdLine.query('Forward search: /', Search.getLastSearchString(), function(searchString) {
+    CmdLine.search('Forward search: /', '', function(searchString) {
       Search.find(searchString);
     }); 
     // cmdWindow().fadeIn();
@@ -224,7 +215,7 @@ var Action = {
 	},
 
   backwardSearch: function() {
-    CmdLine.query('Backward search: ?', Search.getLastSearchString(), function(searchString) {
+    CmdLine.search('Backward search: ?', '', function(searchString) {
       Search.find(searchString, true);
     }); 
   },
@@ -245,3 +236,5 @@ var Action = {
 
   passthroughMode: function() { PassthroughMode.activate(); }
 };
+
+Object.extend(Action, Vrome.extensionMethods.reject(function(m) { return Action[m] }).mapTo(function(m) { return Vrome.extension[m] })._object);

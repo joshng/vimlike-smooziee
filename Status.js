@@ -4,7 +4,8 @@ var Status = (function() {
   });
 
   return {
-    show: function(msg) {
+    show: function(msg, displayTime) {
+      displayTime = displayTime || 1000;
       $('#__vrome_status').html(msg);
       $('#__vrome_status_div').show().animate(
         {
@@ -17,7 +18,7 @@ var Status = (function() {
               $('#__vrome_status_div').fadeOut('fast', function () {
                 $('#__vrome_status_div')[0].style.width = '20%';
               })
-            }, 1000);
+            }, displayTime);
           }
         }
       )

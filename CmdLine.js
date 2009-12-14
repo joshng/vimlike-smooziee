@@ -7,15 +7,16 @@ var CmdLine = (function() {
   }
 
   function cmdWindow() {
-    return $('#__vrome_cmdline_div');
+    return $('#__vrome_cmdline_frame');
   }
 
   $(function() {
-    $(document.body).append('<div id="__vrome_cmdline_div"><span id="__vrome_cmdline_prompt"/><input id="__vrome_cmdline" type="text" /><span id="__vrome_cmdline_closebox">X</span></div>');
+    $(document.body).append('<div id="__vrome_cmdline_frame"><div id="__vrome_cmdline_anim"><span id="__vrome_cmdline_prompt"/><input id="__vrome_cmdline" type="text" /><span id="__vrome_cmdline_closebox">X</span></div></div>');
     $('#__vrome_cmdline_closebox').click(hide);
 
     cmdline().keydown(function(e) {
       var key = KeyEvent.interpret(e.originalEvent);
+      var stopEvent = true;
       switch (key) {
         case 'Esc':
           hide();
@@ -35,15 +36,19 @@ var CmdLine = (function() {
         case 'Enter':
           hide(this.value);
           break;
+        default:
+          stopEvent = false;
       }
+      if (stopEvent) e.preventDefault();
     }).blur(function() {
-      hide();
+      // hide();
     });
   });
 
   var selection;
   var commandCallback;
-  function show(promptString) {
+  function show(promptString, initialValue) {
+    initialValue = initialValue || '';
     $('#__vrome_cmdline_prompt').html(promptString);
     selection = [];
     var sel = window.getSelection();
@@ -52,11 +57,12 @@ var CmdLine = (function() {
     }
     currentCmdHistory = cmdHistory.get(promptString);
     workingCmdHistory = currentCmdHistory.clone();
-    workingCmdHistory.unshift('');
+    workingCmdHistory.unshift(initialValue);
     cmdHistoryIdx = 0;
     
-    cmdWindow().fadeIn('fast');
-    cmdline().val('')[0].focus();
+    cmdWindow().show();
+    $('#__vrome_cmdline_anim').addClass('__vrome_wiggle-in');
+    cmdline().val(initialValue)[0].focus();
   }
 
   function hide(input) {
@@ -65,6 +71,7 @@ var CmdLine = (function() {
     }
 
     workingCmdHistory = currentCmdHistory = null;
+    $('#__vrome_cmdline_anim').removeClass('__vrome_wiggle-in');
     cmdWindow().hide();
     cmdline()[0].blur()
     var sel = window.getSelection();
@@ -78,10 +85,43 @@ var CmdLine = (function() {
     }
   }
 
+  var commandHandlers = {
+    tabopen: Vrome.extension.openTab,
+    open: function(url) {
+      if (!url.match(/^http/)) {
+        url = 'http://' + url;
+      }
+      document.location = url;
+    }
+  };
+  var commands = Object.keys(commandHandlers);
+
+  function parseCmdLine(cmdline) {
+    var args = $w(cmdline);
+    var cmd = args.shift();
+    var len = cmd.length;
+    console.debug('resolving command: ' + cmd + ' (cmdline: ' + cmdline);
+    var candidates = commands.select(function(command) { return (command.substring(0, len) == cmd) });
+    switch (candidates.length) {
+      case 0:
+        Status.show("Unrecognized command: " + cmd);
+        break;
+      case 1:
+        commands[cmd].apply(null, args);
+        break;
+      default:
+        Status.show("Ambiguous command: '" + cmd + "', could match: '" + candidates.sort().join("', '") + "'", 3000);
+        break;
+    }
+  }
+
   return {
-    query: function(promptString, defaultString, callback) {
+    search: function(promptString, initialValue, callback) {
       commandCallback = callback;
-      show(promptString);
+      show(promptString, initialValue);
+    },
+    getCmd: function(initialValue) {
+      this.search(':', initialValue, parseCmdLine);
     }
   }
 }());
