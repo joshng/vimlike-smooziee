@@ -86,15 +86,24 @@ var CmdLine = (function() {
   }
 
   var commandHandlers = {
-    tabopen: Vrome.extension.openTab,
+    tabopen: function(args) {
+      Vrome.extension.openTab(cleanUrl($A(arguments).join(' ')));
+    },
     open: function(url) {
-      if (!url.match(/^http/)) {
-        url = 'http://' + url;
-      }
-      document.location = url;
+      document.location = cleanUrl($A(arguments).join(' '));
     }
   };
   var commands = Object.keys(commandHandlers);
+
+  function cleanUrl(url) {
+    if (!url.match(/^(https?:\/\/)?[a-z0-9-]+\.[a-z0-9.-]+/i)) {
+      return 'http://www.google.com/search?q=' + escape(url);
+    }
+    if (!url.match(/^http/)) {
+      url = 'http://' + url;
+    }
+    return url;
+  }
 
   function parseCmdLine(cmdline) {
     var args = $w(cmdline);
@@ -103,11 +112,11 @@ var CmdLine = (function() {
     console.debug('resolving command: ' + cmd + ' (cmdline: ' + cmdline);
     var candidates = commands.select(function(command) { return (command.substring(0, len) == cmd) });
     switch (candidates.length) {
+      case 1:
+        commandHandlers[cmd].apply(null, args);
+        break;
       case 0:
         Status.show("Unrecognized command: " + cmd);
-        break;
-      case 1:
-        commands[cmd].apply(null, args);
         break;
       default:
         Status.show("Ambiguous command: '" + cmd + "', could match: '" + candidates.sort().join("', '") + "'", 3000);

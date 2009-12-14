@@ -38,8 +38,12 @@ var Vrome = (function(){
     return function() {
       var args = [];
       for (var i = 0; i < arguments.length; i++) {
-        args[i] = arguments[i].toString();
+        args[i] = JSON.stringify(arguments[i]);
       }
+      // var callback;
+      // if (Object.isFunction(args.last())) {
+        // callback = args.pop();
+      // }
       extensionPort.postMessage({method: method, args: args});
     }
   })._object;

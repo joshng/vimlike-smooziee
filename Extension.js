@@ -45,7 +45,7 @@ var Extension = {
     });
   },
   openTab: function(url, tab) {
-    chrome.tabs.create({url: options.url, index: tab.index + 1});
+    chrome.tabs.create({url: url, index: tab.index + 1});
     chrome.tabs.connect(tab.id).postMessage({action: "remove_hints"});
   },
   reloadAllTabs: function(tab) {
