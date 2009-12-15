@@ -15,27 +15,41 @@ var NavMode = new VromeMode({
   T: Action.previousTab
 });
 
-var PassthroughMode = new VromeMode({
-  Esc: Action.normalMode
-});
-PassthroughMode.defaultNextMode = PassthroughMode;
-
-var TextInputMode = new VromeMode({
-  'Esc': Action.blurFocus,
-  'C-[': Action.blurFocus,
-  // 'C-a': Action.moveFirstOrSelectAll,
-  // 'C-e': Action.moveEnd,
-  // 'C-f': Action.moveForward,
-  // 'C-b': Action.moveBackward,
-  // 'C-d': Action.deleteForward,
-  // 'C-h': Action.deleteBackward,
-  // 'C-w': Action.deleteBackwardWord,
+var PassthroughMode = VromeMode.newSingleton({
+  initialize: function() {
+    this._super({
+      Esc: Action.normalMode
+    });
+    this.defaultNextMode = this;
+  },
+  _overrides: {
+    activate: function() {
+      localStorage.deactivateVrome = true;
+      arguments.callee._super();
+    }
+  }
 });
 
-TextInputMode.willHandleKeyDown = function(e) {
-  var t = e.target;
-  var tn = t.nodeName;
-  return (tn == 'INPUT' || tn == 'TEXTAREA' || t.attributes.getNamedItem('contentEditable') != null);
-};
+var TextInputMode = VromeMode.newSingleton({
+  initialize: function() {
+    this._super({
+      'Esc': Action.blurFocus,
+      'C-[': Action.blurFocus,
+      // 'C-a': Action.moveFirstOrSelectAll,
+      // 'C-e': Action.moveEnd,
+      // 'C-f': Action.moveForward,
+      // 'C-b': Action.moveBackward,
+      // 'C-d': Action.deleteForward,
+      // 'C-h': Action.deleteBackward,
+      // 'C-w': Action.deleteBackwardWord,
+    });
+  },
+  willHandleKeyDown: function(e) {
+    var t = e.target;
+    var tn = t.nodeName;
+    return (tn == 'INPUT' || tn == 'TEXTAREA' || t.attributes.getNamedItem('contentEditable') != null);
+  }
+});
+
 
 

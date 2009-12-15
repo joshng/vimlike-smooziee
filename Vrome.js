@@ -65,13 +65,20 @@ var Vrome = (function(){
 var exclude_urls = [/\/\/www\.google\.[^\/]+\/(reader|search)/,  /\/\/mail\.google\.com\//, /\/\/www\.pivotaltracker\.com\//];
 
 $(function() {
-  NormalMode.activate();
-  for (var i = 0; i < exclude_urls.length; i++) {
-    if (exclude_urls[i].test(location.href)) {
-      PassthroughMode.activate();
-      break;
+  var passthrough = localStorage.deactivateVrome;
+  if (!passthrough) {
+    for (var i = 0; i < exclude_urls.length; i++) {
+      if (exclude_urls[i].test(location.href)) {
+        passthrough = true;
+        break;
+      }
     }
   }
 
+  if (passthrough) {
+    PassthroughMode.activate();
+  } else {
+    NormalMode.activate();
+  }
   Vrome.switchToNextMode();
-})
+});

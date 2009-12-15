@@ -1,8 +1,7 @@
-function VromeMode(bindings) {
-  this.bindings = bindings;
-}
-
-VromeMode.prototype = {
+var VromeMode = Object.newSubclass({
+  initialize: function(bindings) {
+    this.bindings = bindings;
+  },
   handleKeyDown: function(key, e) {
     console.debug('handling key: ' + key);
     var action = this.bindings[key];
@@ -17,4 +16,4 @@ VromeMode.prototype = {
   activate: function() {
     Vrome.setNextMode(this);
   }
-};
+});
