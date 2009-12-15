@@ -27,8 +27,9 @@ var Vrome = (function(){
     return function() {
       var args = [];
       for (var i = 0; i < arguments.length; i++) {
-        // this JSON.stringify seems incorrect, but there's apparently a bug in JSON.stringify...
-        // see 
+        // this JSON.stringify seems incorrect, but there's apparently a bug in JSON.stringify
+        // that breaks the serialization in postMessage below; this is a workaround.
+        // see http://code.google.com/p/chromium/issues/detail?id=30300
         args[i] = JSON.stringify(arguments[i]);
       }
       // var callback;
