@@ -5,7 +5,7 @@ var Vrome = (function(){
     var key = KeyEvent.interpret(e);
     if (!key) return;
 
-    if (TextInputMode.willHandleKeyDown(e)) {
+    if (currentMode.passToTextInput && TextInputMode.willHandleKeyDown(e)) {
       TextInputMode.handleKeyDown(key, e);
       return;
     }
@@ -19,17 +19,6 @@ var Vrome = (function(){
 
   var nextMode, currentMode;
 
-	chrome.extension.onConnect.addListener(function(port, name) {
-		port.onMessage.addListener(function(msg) {
-			switch (msg.action) {
-				case "forward_search":
-					Search.forward(msg.search_string);
-					break;
-			}
-		});
-	});
-	
-
   var extensionPort = chrome.extension.connect();
 
   var extensionMethods = $w('closeTab reopenTab previousTab nextTab openUrl openTab reloadAllTabs');
@@ -38,6 +27,8 @@ var Vrome = (function(){
     return function() {
       var args = [];
       for (var i = 0; i < arguments.length; i++) {
+        // this JSON.stringify seems incorrect, but there's apparently a bug in JSON.stringify...
+        // see 
         args[i] = JSON.stringify(arguments[i]);
       }
       // var callback;

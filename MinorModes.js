@@ -1,12 +1,12 @@
-var NextPageMode = new VromeMode({
+var NextPageMode = new VromeMode('NextPage', {
   ']': Action.nextPage
 });
 
-var PrevPageMode = new VromeMode({
+var PrevPageMode = new VromeMode('PrevPage', {
   '[': Action.prevPage
 });
 
-var NavMode = new VromeMode({
+var NavMode = new VromeMode('Nav', {
   g: Action.scrollToTop,
   i: Action.focusFirstTextInput,
   u: Action.parentDirectory,
@@ -17,7 +17,7 @@ var NavMode = new VromeMode({
 
 var PassthroughMode = VromeMode.newSingleton({
   initialize: function() {
-    this._super({
+    this._super('Passthrough', {
       Esc: Action.normalMode
     });
     this.defaultNextMode = this;
@@ -32,7 +32,7 @@ var PassthroughMode = VromeMode.newSingleton({
 
 var TextInputMode = VromeMode.newSingleton({
   initialize: function() {
-    this._super({
+    this._super('TextInput', {
       'Esc': Action.blurFocus,
       'C-[': Action.blurFocus,
       // 'C-a': Action.moveFirstOrSelectAll,
@@ -50,6 +50,8 @@ var TextInputMode = VromeMode.newSingleton({
     return (tn == 'INPUT' || tn == 'TEXTAREA' || t.attributes.getNamedItem('contentEditable') != null);
   }
 });
+
+VromeMode.prototype.textInputMode = TextInputMode;
 
 
 

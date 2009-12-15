@@ -1,6 +1,6 @@
 var NormalMode = VromeMode.newSingleton({
   initialize: function() {
-    this._super({
+    this._super('Normal', {
       'j': Action.smoothScrollDown,
       'k': Action.smoothScrollUp,
       'h': Action.smoothScrollLeft,

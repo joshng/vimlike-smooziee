@@ -10,38 +10,45 @@ var CmdLine = (function() {
     return $('#__vrome_cmdline_frame');
   }
 
+  function loadNextHistory() {
+    loadHistory((cmdHistoryIdx + 1) % workingCmdHistory.length);
+  }
+  function loadPrevHistory() {
+    loadHistory((cmdHistoryIdx - 1 + workingCmdHistory.length) % workingCmdHistory.length);
+  }
+  function loadHistory(idx) {
+    workingCmdHistory[cmdHistoryIdx] = cmdline().val();
+    cmdHistoryIdx = idx;
+    cmdline().val(workingCmdHistory[cmdHistoryIdx]);
+  }
+
+  var CmdLineMode = VromeMode.newSingleton({
+    initialize: function() {
+      this._super('CmdLine', {
+        Esc: finish,
+        Up: loadPrevHistory,
+        Down: loadNextHistory,
+        'C-p': loadPrevHistory,
+        'C-n': loadNextHistory,
+        Enter: function() {
+          finish(cmdline().val());
+        }
+      });
+      this.defaultNextMode = this;
+    },
+    passToTextInput: false
+  });
+
   $(function() {
     $(document.body).append('<div id="__vrome_cmdline_frame"><div id="__vrome_cmdline_anim"><span id="__vrome_cmdline_prompt"/><input id="__vrome_cmdline" type="text" /><span id="__vrome_cmdline_closebox">X</span></div></div>');
-    $('#__vrome_cmdline_closebox').click(hide);
+    $('#__vrome_cmdline_closebox').click(function() { finish() });
 
-    cmdline().keydown(function(e) {
-      var key = KeyEvent.interpret(e.originalEvent);
-      var stopEvent = true;
-      switch (key) {
-        case 'Esc':
-          hide();
-          break;
-        case 'Up':
-        case 'C-p':
-          workingCmdHistory[cmdHistoryIdx] = this.value;
-          cmdHistoryIdx = (cmdHistoryIdx + 1) % workingCmdHistory.length;
-          this.value = workingCmdHistory[cmdHistoryIdx];
-          break;
-        case 'Down':
-        case 'C-n':
-          workingCmdHistory[cmdHistoryIdx] = this.value;
-          cmdHistoryIdx = (cmdHistoryIdx - 1 + workingCmdHistory.length) % workingCmdHistory.length;
-          this.value = workingCmdHistory[cmdHistoryIdx];
-          break;
-        case 'Enter':
-          hide(this.value);
-          break;
-        default:
-          stopEvent = false;
-      }
-      if (stopEvent) e.preventDefault();
+    cmdline().focus(function() {
+      CmdLineMode.activate();
+      Vrome.switchToNextMode();
     }).blur(function() {
-      // hide();
+      NormalMode.activate();
+      Vrome.switchToNextMode();
     });
   });
 
@@ -65,7 +72,7 @@ var CmdLine = (function() {
     cmdline().val(initialValue)[0].focus();
   }
 
-  function hide(input) {
+  function finish(input) {
     if (input) {
       currentCmdHistory.unshift(input);
     }
