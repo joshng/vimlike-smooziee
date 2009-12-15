@@ -36,6 +36,14 @@ var Extension = {
       chrome.tabs.create({url: last_closed_tab.url, index: last_closed_tab.index});
     }
   },
+  nextTab: function(tab) {
+    chrome.tabs.getAllInWindow(tab.windowId, function(tabs) {
+      var next_tab = tabs[tab.index + 1] || tabs[0];
+      if (next_tab) {
+        chrome.tabs.update(next_tab.id, {selected: true});
+      }
+    });
+  },
   previousTab: function(tab) {
     chrome.tabs.getAllInWindow(tab.windowId, function(tabs) {
       var previous_tab = tabs[tab.index - 1] || tabs[tabs.length - 1];
@@ -63,58 +71,13 @@ chrome.extension.onConnect.addListener(function(port, name) {
     console.debug('got msg: ' + JSON.stringify(msg));
 
     var handler = Extension[msg.method];
-    if (handler) {
-      var args = JSON.parse(msg.args);
-      args.push(tab);
-      handler.apply(Extension, args);
+    if (!handler) {
+      alert('Vrome: unrecognized extension command: ' + msg.method)
       return;
     }
-
-    switch(msg.action){
-    case "close_tab":
-      chrome.tabs.remove(tab.id);
-      break;
-    case "reopen_tab":
-      if (closed_tabs.length > 0) {
-        var last_closed_tab = closed_tabs[closed_tabs.length - 1]
-        closed_tabs.pop();
-        chrome.tabs.create({url: last_closed_tab.url, index: last_closed_tab.index});
-      }
-      break;
-    case "previous_tab":
-      chrome.tabs.getAllInWindow(tab.windowId, function(tabs) {
-        var previous_tab = tabs[tab.index - 1] || tabs[tabs.length - 1];
-        if (previous_tab) {
-          chrome.tabs.update(previous_tab.id, {selected: true});
-        }
-      });
-      break;
-    case "next_tab":
-      chrome.tabs.getAllInWindow(tab.windowId, function(tabs) {
-        var next_tab = tabs[tab.index + 1] || tabs[0];
-        if (next_tab) {
-          chrome.tabs.update(next_tab.id, {selected: true});
-        }
-      });
-      break;
-    case "open_url":
-      if (msg.newtab) { 
-        chrome.tabs.create({url: msg.url, index: tab.index + 1});
-        var myport = chrome.tabs.connect(tab.id, {});
-        myport.postMessage({action: "remove_hints"});
-      } else {
-        chrome.tabs.update(tab.id, {url: msg.url});
-      }
-      break;
-    case "reload_all_tabs":
-      chrome.tabs.getAllInWindow(tab.windowId, function(tabs) {
-        for (var i = 0; i < tabs.length; i++) {
-          var jsRunner = {"code": "location.reload()"};
-          chrome.tabs.executeScript(tabs[i].id, jsRunner);
-        }
-      });
-      break;
-    };
+    var args = JSON.parse(msg.args);
+    args.push(tab);
+    handler.apply(Extension, args);
   });
 });
 

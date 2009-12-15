@@ -143,9 +143,12 @@ var HintMode = (function() {
     var type = elem.type ? elem.type.toLowerCase() : "";
     if (tag_name == 'a' && elem.href != '') {
       setHighlight(elem, true);
-      var port = chrome.extension.connect();
       // TODO: ajax, <select>
-      port.postMessage({action: "open_url", url: elem.href, newtab: hint_open_in_new_tab});
+      if (hint_open_in_new_tab) {
+        Vrome.extension.openTab(elem.href);
+      } else {
+        document.location = elem.href;
+      }
     } else if (tag_name == 'input' && (type == "submit" || type == "button" || type == "reset")) {
       elem.click();
     } else if (tag_name == 'input' && (type == "radio" || type == "checkbox")) {

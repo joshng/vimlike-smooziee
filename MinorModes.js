@@ -10,7 +10,9 @@ var NavMode = new VromeMode({
   g: Action.scrollToTop,
   i: Action.focusFirstTextInput,
   u: Action.parentDirectory,
-  U: Action.rootDirectory
+  U: Action.rootDirectory,
+  t: Action.nextTab,
+  T: Action.previousTab
 });
 
 var PassthroughMode = new VromeMode({
